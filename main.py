@@ -17,9 +17,12 @@ import pkg_resources as pr
 REPO_LOCATION = os.getenv('REPO_LOCATION', '/coreapi/repo')
 
 def get_repo_ecosystem():
-    if len(glob.glob('{REPO_LOCATION}/package.json')) > 0:
+    logger.info('%s' % f'{REPO_LOCATION}/package.json')
+    logger.info('%s' % glob.glob(f'{REPO_LOCATION}/package.json'))
+    logger.info('%d' % len(glob.glob(f'{REPO_LOCATION}/package.json')))
+    if len(glob.glob(f'{REPO_LOCATION}/package.json')) > 0:
         return 'npm'
-    elif len(glob.glob('{REPO_LOCATION}/requirements.txt')) > 0:
+    elif len(glob.glob(f'{REPO_LOCATION}/requirements.txt')) > 0:
         return 'pypi'
     else:
         return None
@@ -34,7 +37,7 @@ def generate_deps_file(ecosystem, manifest):
     elif ecosystem == 'pypi':
         gd = pr.get_distribution
         res = list()
-        for i in open('{REPO_LOCATION}/requirements.txt'):
+        for i in open(f'{REPO_LOCATION}/requirements.txt'):
             try:
                 rs = {}
                 I = gd(i)
