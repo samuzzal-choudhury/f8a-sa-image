@@ -17,15 +17,14 @@ import pkg_resources as pr
 REPO_LOCATION = os.getenv('REPO_LOCATION', '/coreapi/repo')
 
 def get_repo_ecosystem():
-    logger.info('%s' % f'{REPO_LOCATION}/package.json')
-    logger.info('%s' % glob.glob(f'{REPO_LOCATION}/package.json'))
-    logger.info('%d' % len(glob.glob(f'{REPO_LOCATION}/package.json')))
+    ecosystem = None
     if len(glob.glob(f'{REPO_LOCATION}/package.json')) > 0:
-        return 'npm'
+        ecosystem = 'npm'
     elif len(glob.glob(f'{REPO_LOCATION}/requirements.txt')) > 0:
-        return 'pypi'
-    else:
-        return None
+        ecosystem = 'pypi'
+
+    logger.info('Identified ecosystem is %s' % ecosystem)
+    return ecosystem
 
 
 def generate_deps_file(ecosystem, manifest):
@@ -35,12 +34,16 @@ def generate_deps_file(ecosystem, manifest):
         logger.info(f'Generating {manifest} ...')
         out = sp.check_output(command, shell=True)
     elif ecosystem == 'pypi':
+        command = f'pip3 install -r {REPO_LOCATION}/requirements.txt'
+        logger.info(f'Running: {command}')
+        sp.check_output(command, shell=True)
         gd = pr.get_distribution
-        res = list()
+        out = list()
         for i in open(f'{REPO_LOCATION}/requirements.txt'):
             try:
                 rs = {}
                 I = gd(i)
+                logger.info(f'Identified {I}')
                 rs["package"] = I.key
                 rs["version"] = I.version
                 rs["deps"] = set()
@@ -49,12 +52,16 @@ def generate_deps_file(ecosystem, manifest):
                         K = gd(k)
                         rs["deps"].add((K.key, K.version))
                 rs["deps"] = [{"package": p, "version": v} for p, v in rs["deps"]]
-                res.append(rs)
+                out.append(rs)
             except:
                 pass
-        a = sys.argv[2:3]
-        op = open(a[0], "w") if a else sys.stdout
-        json.dump(res, op)
+        logger.info('Result: %r' % out)
+        logger.info(f'Writing {manifest}')
+        try:
+            with open(f'{REPO_LOCATION}/{manifest}', "w+") as op:
+                op.write(json.dumps(out, indent=4))
+        except Exception as e:
+            logger.error('%r' % e)
     return out
 
 def run_sa_post(gateway_url, gateway_user_key, source='vscode'):
